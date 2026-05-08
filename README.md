@@ -28,6 +28,8 @@
 ---
 
 ## 📁 프로젝트 구조
+
+```
 ai-medicare/
 ├── main.py          # FastAPI 서버
 ├── model.py         # Isolation Forest 모델
@@ -37,8 +39,9 @@ ai-medicare/
 ├── requirements.txt
 ├── Dockerfile
 └── dummy/
-├── generate.py      # 더미 데이터 생성
-└── convert_kdd.py   # KDD 데이터 변환
+    ├── generate.py      # 더미 데이터 생성
+    └── convert_kdd.py   # KDD 데이터 변환
+```
 
 ---
 
