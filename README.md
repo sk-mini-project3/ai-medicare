@@ -88,6 +88,7 @@ docker run -p 8001:8001 ai-medicare
       "requests_per_min": 51.43,
       "login_fail_count": 0,
       "forbidden_ratio": 0.5,
+      "reason": "403 에러 비율 50%, 분당 요청 51.4회",
       "timestamp": "2026-05-08 09:40:16"
     }
   ]
@@ -107,14 +108,14 @@ docker run -p 8001:8001 ai-medicare
 
 ---
 
----
 ## 📧 이메일 알림
 
 이상 행위 탐지 시 관리자 이메일로 자동 발송됩니다.
 
 `.env` 파일에 아래 내용 설정 필요
 
+```env
 EMAIL_ADDRESS=발송용Gmail주소
 EMAIL_PASSWORD=앱비밀번호
 ADMIN_EMAIL=수신할이메일주소
----
+```
