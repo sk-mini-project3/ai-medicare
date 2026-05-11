@@ -102,6 +102,6 @@ docker run -p 8001:8001 ai-medicare
 | IDOR 시도 | forbidden_ratio 30% 이상 | HIGH |
 | 무차별 로그인 | 로그인 실패 5회 이상 | HIGH |
 | 새벽 대량 접근 | 평균 시간대 5시 이하 | HIGH |
-| 비정상 요청 빈도 | 분당 요청 1회 이상 | HIGH |
+| 비정상 요청 빈도 | 분당 요청 5회 이상 | HIGH |
 
 ---
