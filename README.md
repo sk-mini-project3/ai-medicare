@@ -36,6 +36,7 @@ ai-medicare/
 ├── features.py      # 피처 추출
 ├── database.py      # RDS 연결
 ├── schemas.py       # API 응답 형식
+├── notifier.py      # 이메일 알림
 ├── requirements.txt
 ├── Dockerfile
 └── dummy/
@@ -104,4 +105,16 @@ docker run -p 8001:8001 ai-medicare
 | 새벽 대량 접근 | 평균 시간대 5시 이하 | HIGH |
 | 비정상 요청 빈도 | 분당 요청 5회 이상 | HIGH |
 
+---
+
+---
+## 📧 이메일 알림
+
+이상 행위 탐지 시 관리자 이메일로 자동 발송됩니다.
+
+`.env` 파일에 아래 내용 설정 필요
+
+EMAIL_ADDRESS=발송용Gmail주소
+EMAIL_PASSWORD=앱비밀번호
+ADMIN_EMAIL=수신할이메일주소
 ---
