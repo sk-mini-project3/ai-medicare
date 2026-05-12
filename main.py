@@ -22,8 +22,8 @@ def root():
 
 
 @app.get("/ai/alerts", response_model=AlertResponse)
-def get_alerts():
-    df = train_and_predict()
+def get_alerts(use_rds: bool = False):
+    df = train_and_predict(use_rds=use_rds)
     result = df[df["risk_level"] != "NORMAL"]
 
     alerts = [
