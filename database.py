@@ -55,6 +55,14 @@ def test_connection():
         print(f"DB 연결 실패: {e}")
         return False
 
+def show_tables():
+    engine = get_engine()
+    with engine.connect() as conn:
+        result = conn.execute(text("SHOW TABLES FROM medicalservicedb"))
+        for row in result:
+            print(row[0])
 
 if __name__ == "__main__":
     test_connection()
+    df = fetch_audit_logs()
+    print(df.head())

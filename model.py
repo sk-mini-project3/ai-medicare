@@ -3,6 +3,7 @@ import joblib
 import os
 from sklearn.ensemble import IsolationForest
 from features import extract_features
+from database import fetch_audit_logs
 
 MODEL_PATH = "model_saved.pkl"
 
@@ -76,8 +77,17 @@ def classify_risk(row):
     return "NORMAL", ""
 
 
-def train_and_predict(csv_path: str = "dummy/audit_logs.csv"):
-    df = pd.read_csv(csv_path)
+def train_and_predict(use_rds: bool = False, csv_path: str = "dummy/audit_logs.csv"):
+    # RDS 연동 or CSV 사용
+    if use_rds:
+        print("RDS 데이터 로드")
+        df = fetch_audit_logs()
+        if df.empty:
+            print("RDS 데이터 없음 → CSV 더미 데이터로 대체")
+            df = pd.read_csv(csv_path)
+    else:
+        df = pd.read_csv(csv_path)
+
     features_df = extract_features(df)
 
     feature_cols = [
@@ -101,20 +111,21 @@ def train_and_predict(csv_path: str = "dummy/audit_logs.csv"):
         classify_risk, axis=1, result_type="expand"
     )
 
-    # 성능 검증
-    print("\n모델 성능 검증")
-    print(f"전체 유저 수: {len(features_df)}명")
+    # RDS 데이터는 성능 검증 생략
+    if not use_rds:
+        print("\n모델 성능 검증")
+        print(f"전체 유저 수: {len(features_df)}명")
 
-    normal_users = features_df[features_df["user_id"] < 900]
-    attack_users = features_df[features_df["user_id"] >= 900]
+        normal_users = features_df[features_df["user_id"] < 900]
+        attack_users = features_df[features_df["user_id"] >= 900]
 
-    false_positive = normal_users[normal_users["risk_level"] != "NORMAL"]
-    false_negative = attack_users[attack_users["risk_level"] == "NORMAL"]
-    detected = attack_users[attack_users["risk_level"] != "NORMAL"]
+        false_positive = normal_users[normal_users["risk_level"] != "NORMAL"]
+        false_negative = attack_users[attack_users["risk_level"] == "NORMAL"]
+        detected = attack_users[attack_users["risk_level"] != "NORMAL"]
 
-    print(f"오탐 (정상 → 이상 탐지): {len(false_positive)}명")
-    print(f"미탐 (공격 → 정상 탐지): {len(false_negative)}명")
-    print(f"공격 탐지율: {len(detected) / len(attack_users) * 100:.1f}%")
+        print(f"오탐 (정상 → 이상 탐지): {len(false_positive)}명")
+        print(f"미탐 (공격 → 정상 탐지): {len(false_negative)}명")
+        print(f"공격 탐지율: {len(detected) / len(attack_users) * 100:.1f}%")
 
     result = features_df[features_df["risk_level"] != "NORMAL"]
     print(f"\n탐지 완료: 이상 유저 {len(result)}명")
