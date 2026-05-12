@@ -15,3 +15,6 @@ class Alert(BaseModel):
 class AlertResponse(BaseModel):
     count: int
     alerts: List[Alert]
+
+class AnalyzeRequest(BaseModel):
+    user_id: int
