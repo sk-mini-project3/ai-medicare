@@ -1,10 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from model import train_and_predict
+from model import train_and_predict, retrain_model
 from datetime import datetime
-from schemas import AlertResponse, Alert
+from schemas import AlertResponse, Alert, AnalyzeRequest, AnalyzeResponse, TrainResponse
 from notifier import send_alert_email
-from schemas import AlertResponse, Alert, AnalyzeRequest
 
 app = FastAPI()
 
@@ -40,32 +39,56 @@ def get_alerts(use_rds: bool = False):
         for _, row in result.iterrows()
     ]
 
-    # 이메일 알림 발송 추가
+    # 이메일 알림 발송
     send_alert_email([a.dict() for a in alerts])
 
     return AlertResponse(count=len(alerts), alerts=alerts)
 
 
-@app.post("/ai/analyze")
-def analyze_user(request: AnalyzeRequest):
-    df = train_and_predict()
+@app.post("/ai/analyze", response_model=AnalyzeResponse)
+def analyze_user(request: AnalyzeRequest, use_rds: bool = False):
+    try:
+        df = train_and_predict(use_rds=use_rds)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"모델 실행 오류: {str(e)}")
 
     user_result = df[df["user_id"] == request.user_id]
 
     if user_result.empty:
-        return {
-            "user_id": request.user_id,
-            "risk_level": "UNKNOWN",
-            "reason": "데이터 없음",
-        }
+        raise HTTPException(
+            status_code=404,
+            detail=f"user_id {request.user_id} 에 해당하는 데이터가 없습니다.",
+        )
 
     row = user_result.iloc[0]
-    return {
-        "user_id": int(row["user_id"]),
-        "risk_level": row["risk_level"],
-        "reason": row["reason"],
-        "requests_per_min": round(row["requests_per_min"], 2),
-        "login_fail_count": int(row["login_fail_count"]),
-        "forbidden_ratio": round(row["forbidden_ratio"], 2),
-        "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-    }
+
+    return AnalyzeResponse(
+        user_id=int(row["user_id"]),
+        risk_level=row["risk_level"],
+        reason=row["reason"] if row["reason"] else "정상 접근 패턴",
+        requests_per_min=round(row["requests_per_min"], 2),
+        login_fail_count=int(row["login_fail_count"]),
+        forbidden_ratio=round(row["forbidden_ratio"], 2),
+        unique_endpoints=int(row["unique_endpoints"]),
+        top_ip_ratio=round(row["top_ip_ratio"], 2),
+        avg_hour=round(row["avg_hour"], 1),
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )
+
+
+@app.post("/ai/train", response_model=TrainResponse)
+def train_model():
+    try:
+        result = retrain_model()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"재학습 오류: {str(e)}")
+
+    return TrainResponse(
+        message="모델 재학습 완료",
+        row_count=result["row_count"],
+        user_count=result["user_count"],
+        elapsed_sec=result["elapsed_sec"],
+        timestamp=datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    )

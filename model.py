@@ -1,11 +1,14 @@
 import pandas as pd
 import joblib
 import os
+import shutil
+import time
 from sklearn.ensemble import IsolationForest
 from features import extract_features
 from database import fetch_audit_logs
 
 MODEL_PATH = "model_saved.pkl"
+MODEL_BACKUP_PATH = "model_saved_backup.pkl"
 
 
 def train_and_save(csv_path: str = "dummy/audit_logs.csv"):
@@ -46,6 +49,61 @@ def load_model():
         print("저장된 모델 없음 → 새로 학습")
         model, _, _ = train_and_save()
         return model
+
+
+def retrain_model():
+    """
+    RDS AuditLog 데이터로 모델 재학습 후 저장.
+    기존 모델은 백업 후 교체.
+    """
+    start = time.time()
+
+    # RDS 데이터 로드
+    print("RDS 데이터 로드 중...")
+    df = fetch_audit_logs()
+
+    if df.empty:
+        raise ValueError("RDS에 학습할 데이터가 없습니다.")
+
+    row_count = len(df)
+    print(f"로드된 로그: {row_count}건")
+
+    # 피처 추출
+    features_df = extract_features(df)
+
+    feature_cols = [
+        "requests_per_min",
+        "avg_hour",
+        "login_fail_count",
+        "unique_endpoints",
+        "top_ip_ratio",
+        "forbidden_ratio",
+        "avg_serror_rate",
+        "avg_rerror_rate",
+        "avg_diff_srv_rate",
+        "avg_count",
+    ]
+    X = features_df[feature_cols]
+
+    # 기존 모델 백업
+    if os.path.exists(MODEL_PATH):
+        shutil.copy(MODEL_PATH, MODEL_BACKUP_PATH)
+        print(f"기존 모델 백업 완료: {MODEL_BACKUP_PATH}")
+
+    # 재학습 (RDS는 정상/공격 구분 없으므로 전체 데이터로 학습)
+    model = IsolationForest(contamination=0.03, random_state=42)
+    model.fit(X)
+
+    joblib.dump(model, MODEL_PATH)
+
+    elapsed = round(time.time() - start, 2)
+    print(f"재학습 완료 ({elapsed}초)")
+
+    return {
+        "row_count": row_count,
+        "user_count": len(features_df),
+        "elapsed_sec": elapsed,
+    }
 
 
 def classify_risk(row):
