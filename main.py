@@ -21,6 +21,11 @@ def root():
     return {"message": "MediBook AI 서버 정상 동작 중"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 @app.get("/ai/alerts", response_model=AlertResponse)
 def get_alerts(use_rds: bool = False):
     df = train_and_predict(use_rds=use_rds)
