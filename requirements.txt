@@ -4,5 +4,6 @@ scikit-learn
 pandas
 sqlalchemy
 psycopg2-binary
+pymysql
 joblib
 python-dotenv

@@ -27,8 +27,11 @@ def health():
 
 
 @app.get("/ai/alerts", response_model=AlertResponse)
-def get_alerts(use_rds: bool = False):
-    df = train_and_predict(use_rds=use_rds)
+def get_alerts(use_rds: bool = True):
+    try:
+        df = train_and_predict(use_rds=use_rds)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"알림 분석 오류: {str(e)}")
     result = df[df["risk_level"] != "NORMAL"]
 
     alerts = [
@@ -51,7 +54,7 @@ def get_alerts(use_rds: bool = False):
 
 
 @app.post("/ai/analyze", response_model=AnalyzeResponse)
-def analyze_user(request: AnalyzeRequest, use_rds: bool = False):
+def analyze_user(request: AnalyzeRequest, use_rds: bool = True):
     try:
         df = train_and_predict(use_rds=use_rds)
     except Exception as e:

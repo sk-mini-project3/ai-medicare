@@ -139,11 +139,23 @@ def train_and_predict(use_rds: bool = False, csv_path: str = "dummy/audit_logs.c
     # RDS 연동 or CSV 사용
     if use_rds:
         print("RDS 데이터 로드")
-        df = fetch_audit_logs()
-        if df.empty:
-            print("RDS 데이터 없음 → CSV 더미 데이터로 대체")
-            df = pd.read_csv(csv_path)
+        try:
+            df = fetch_audit_logs()
+            if df.empty:
+                if os.path.exists(csv_path):
+                    print("RDS 데이터 없음 → CSV 더미 데이터로 대체")
+                    df = pd.read_csv(csv_path)
+                else:
+                    raise ValueError("RDS 데이터가 없고 CSV 더미 파일도 없습니다.")
+        except Exception:
+            if os.path.exists(csv_path):
+                print("RDS 조회 실패 → CSV 더미 데이터로 대체")
+                df = pd.read_csv(csv_path)
+            else:
+                raise
     else:
+        if not os.path.exists(csv_path):
+            raise FileNotFoundError(f"CSV 파일이 없습니다: {csv_path}")
         df = pd.read_csv(csv_path)
 
     features_df = extract_features(df)
